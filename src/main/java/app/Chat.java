@@ -12,19 +12,22 @@ import static gui.MsgColor.*;
 import static java.lang.System.exit;
 
 public class Chat extends ReceiverAdapter {
-    private JChannel channel;
-    private View lastView;
     private final TerminalGUI gui;
     private final String username;
+    private final String chatname;
+
+    private JChannel channel;
+    private View lastView;
 
     public Chat(TerminalGUI gui, String username, String chatname) {
         lastView = new View(new ViewId(), new ArrayList<>());
         this.gui = gui;
         this.username = username;
+        this.chatname = chatname;
 
         boolean shouldQuit = false;
         do {
-            String userInput = this.gui.readInput();
+            String userInput = "";
             if (userInput.length() == 0)
                 continue;
 
@@ -48,6 +51,15 @@ public class Chat extends ReceiverAdapter {
             this.printUserMsg(this.username, userInput);
         } while (!shouldQuit);
         exit(0);
+    }
+
+    public void activate() {
+        this.gui.clear();
+        this.printInfo("Chat '" + this.chatname + "' activated");
+
+        while (true) {
+//            String userInput = this.gui.readInput();
+        }
     }
 
     private boolean handleCommand(String command) {
@@ -169,6 +181,7 @@ public class Chat extends ReceiverAdapter {
 
     private boolean isCommand(String msg) { return msg.charAt(0) == '!'; }
     private void printUserMsg(String username, String msg) { gui.printLn(YELLOW, "[ " + username + " ]: " + msg); }
+
     private void printInfo(String msg) { gui.printLn(CYAN, "--> " + msg); }
     private void printSuccess(String msg) { gui.printLn(GREEN, "--> " + msg); }
     private void printError(String msg) { gui.printLn(RED, "--> " + msg); }
