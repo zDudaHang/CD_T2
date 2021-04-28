@@ -3,6 +3,7 @@ package app;
 import gui.TerminalGUI;
 
 import java.util.HashMap;
+import org.jgroups.logging.LogFactory;
 
 import static gui.MsgColor.CYAN;
 
@@ -32,16 +33,20 @@ public class App {
         TerminalGUI.printLn(CYAN, greetings);
 
         // Pede o nome de usuario
-        this.username = TerminalGUI.readWithHeader("Nome de usuário: ", 50);
+        TerminalGUI.printLn("Your username:");
+        this.username = TerminalGUI.read(50);
         TerminalGUI.printLnInfo("Username: " + this.username);
 
         // Pede o nome do primeiro chat, conecta e limpa a tela
-        String chatname = TerminalGUI.readWithHeader("Conectar no chat: ", 50);
+        TerminalGUI.printLn("The chatname:");
+        String chatname = TerminalGUI.read(50);
         TerminalGUI.printLnInfo("Chatname: " + chatname);
-//        Chat newChat = new Chat(, this.username, chatname);
-//        this.chats.put(chatname, newChat);
-//        gui.clear();
-//
-//        newChat.activate();
+
+        // Remove logs
+        LogFactory.setCustomLogFactory(new app.LogFactory()); // Omitir logs
+
+        Chat newChat = new Chat(this.username, chatname, true);
+        this.chats.put(chatname, newChat);
+        newChat.activate();
     }
 }

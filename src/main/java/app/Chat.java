@@ -2,7 +2,6 @@ package app;
 
 import gui.TerminalGUI;
 import org.jgroups.*;
-import org.jgroups.logging.LogFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,31 +11,57 @@ import static gui.MsgColor.*;
 import static java.lang.System.exit;
 
 public class Chat extends ReceiverAdapter {
-    private final TerminalGUI gui;
+    private boolean isActive;
     private final String username;
     private final String chatname;
 
     private JChannel channel;
     private View lastView;
 
-    public Chat(TerminalGUI gui, String username, String chatname) {
+    public Chat(String username, String chatname, boolean isActive) {
         lastView = new View(new ViewId(), new ArrayList<>());
-        this.gui = gui;
         this.username = username;
         this.chatname = chatname;
+        this.isActive = isActive;
+    }
 
-        boolean shouldQuit = false;
-        do {
-            String userInput = "";
+    public void activate() {
+        this.isActive = true;
+        TerminalGUI.clear();
+        TerminalGUI.printLnInfo("Activating chat '" + this.chatname + "'");
+
+        // Conecta no chat escolhido
+        try {
+            this.channel = new JChannel().setReceiver(this);
+        } catch (Exception e) {
+            TerminalGUI.printLnError(e.getMessage());
+            return;
+        }
+        this.channel.setName(this.username);
+        try {
+            this.channel.connect(chatname);
+        } catch (Exception e) {
+            TerminalGUI.printLnError(e.getMessage());
+        }
+
+        TerminalGUI.clear();
+        TerminalGUI.printLnInfo("You've entered chat '" + this.chatname + "'");
+
+        while (true) {
+            String userInput = TerminalGUI.read(100);
             if (userInput.length() == 0)
                 continue;
 
             if (isCommand(userInput)) {
-                shouldQuit = handleCommand(userInput);
+                boolean shouldQuit = handleCommand(userInput);
+                if (shouldQuit)
+                    break;
+
                 continue;
             }
+
             if (this.channel == null) {
-                this.printError("Você não está conectado a nenhum chat");
+                TerminalGUI.printLnError("Você não está conectado a nenhum chat");
                 continue;
             }
 
@@ -44,22 +69,11 @@ public class Chat extends ReceiverAdapter {
             try {
                 this.channel.send(msg);
             } catch (Exception e) {
-                this.printError(e.getMessage());
-                continue;
+                TerminalGUI.printLnError(e.getMessage());
             }
-
-            this.printUserMsg(this.username, userInput);
-        } while (!shouldQuit);
-        exit(0);
-    }
-
-    public void activate() {
-        this.gui.clear();
-        this.printInfo("Chat '" + this.chatname + "' activated");
-
-        while (true) {
-//            String userInput = this.gui.readInput();
         }
+
+        exit(0);
     }
 
     private boolean handleCommand(String command) {
@@ -67,11 +81,11 @@ public class Chat extends ReceiverAdapter {
         try {
             c = Commands.fromString(command);
         } catch (Exception e) {
-            this.printError(e.getMessage());
+            TerminalGUI.printLnError(e.getMessage());
             return false;
         }
         if (c == null) {
-            this.printError("Comando '" + command + "' desconhecido");
+            TerminalGUI.printLnError("Comando '" + command + "' desconhecido");
             return false;
         }
 
@@ -89,34 +103,7 @@ public class Chat extends ReceiverAdapter {
         return false;
     }
 
-    private void connectToChat(String chatName) {
-        if (this.channel != null && this.channel.isConnected()) {
-            printError("Para entrar em outro chat, se desconecte do atual usando !desconectar");
-            return;
-        }
-
-        LogFactory.setCustomLogFactory(new app.LogFactory()); // Omitir logs
-        try {
-            this.channel = new JChannel().setReceiver(this);
-        } catch (Exception e) {
-            this.printError(e.getMessage());
-            return;
-        }
-
-        this.channel.setName(this.username);
-        try {
-            this.channel.connect(chatName);
-        } catch (Exception e) {
-            this.printError(e.getMessage());
-        }
-    }
-
     private void getMembers() {
-        if (this.channel == null) {
-            this.printError("Você precisa conectar a um Chat antes de poder ver os membros.");
-            return;
-        }
-
         List<Address> members = this.lastView.getMembers();
         List<String> membersNames = new ArrayList<>();
         members.forEach(a -> {
@@ -129,33 +116,28 @@ public class Chat extends ReceiverAdapter {
             }
             membersNames.add(name);
         });
-        this.printInfo(membersNames.toString());
+        TerminalGUI.printLnInfo(membersNames.toString());
     }
 
     private void disconnect() {
-        if (this.channel == null) {
-            this.printError("Precisa estar conectado a um Chat");
-            return;
-        }
-
         this.channel.disconnect();
         if (!this.channel.isConnected())
-            this.printSuccess("Desconectado do Chat");
+            TerminalGUI.printLnSuccess("Desconectado do Chat");
         else
-            this.printError("Nao foi possivel desconectar do Chat");
+            TerminalGUI.printLnError("Nao foi possivel desconectar do Chat");
     }
 
     private void quit() {
-        if (this.channel != null) {
-            this.channel.close();
-
-            if (this.channel.isClosed())
-                this.printSuccess("Você saiu do Chat");
-        }
+        this.channel.close();
+        if (this.channel.isClosed())
+            TerminalGUI.printLnSuccess("Você saiu do Chat");
     }
 
     @Override
     public void viewAccepted(View newView) {
+        if (!isActive)
+            return;
+
         if (newView != null) {
             List<Address> newMembers = View.newMembers(lastView, newView);
             List<Address> exitedMembers = View.leftMembers(lastView, newView);
@@ -166,23 +148,23 @@ public class Chat extends ReceiverAdapter {
 
             if (!newMembers.isEmpty()) {
                 String msg = newMembers.size() > 1 ? "Novos membros entraram: ": "Um novo membro entrou: ";
-                this.printInfo(msg + newMembers.toString());
+                TerminalGUI.printLnInfo(msg + newMembers.toString());
             }
             if (!exitedMembers.isEmpty()) {
                 String msg = exitedMembers.size() > 1 ? "Alguns membros saíram: ": "Um membro saiu: ";
-                this.printInfo(msg + exitedMembers.toString());
+                TerminalGUI.printLnInfo(msg + exitedMembers.toString());
             }
         }
         lastView = newView;
     }
 
     @Override
-    public void receive(Message msg) { this.printUserMsg(msg.getSrc().toString(), msg.getObject()); }
+    public void receive(Message msg) {
+        if (!isActive)
+            return;
+
+        TerminalGUI.printLn(YELLOW, msg.getSrc().toString() + ": " +  msg.getObject());
+    }
 
     private boolean isCommand(String msg) { return msg.charAt(0) == '!'; }
-    private void printUserMsg(String username, String msg) { gui.printLn(YELLOW, "[ " + username + " ]: " + msg); }
-
-    private void printInfo(String msg) { gui.printLn(CYAN, "--> " + msg); }
-    private void printSuccess(String msg) { gui.printLn(GREEN, "--> " + msg); }
-    private void printError(String msg) { gui.printLn(RED, "--> " + msg); }
 }
