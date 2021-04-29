@@ -25,7 +25,7 @@ public class App {
             "||\n";
 
     private String username;
-    private final HashMap<String, Chat> chats = new HashMap<>();
+    public final HashMap<String, Chat> chats = new HashMap<>();
 
     public App() {
         // Apresenta um cabeçalho com nomes e instruções
@@ -45,7 +45,7 @@ public class App {
         // Remove logs
         LogFactory.setCustomLogFactory(new app.LogFactory()); // Omitir logs
 
-        Chat newChat = new Chat(this.username, chatname, true);
+        Chat newChat = new Chat(this, this.username, chatname, true);
         this.chats.put(chatname, newChat);
         newChat.activate();
     }

@@ -1,6 +1,7 @@
 package app;
 
 public enum Commands {
+	ENTER("!entrar", true),
 	QUIT("!sair", false),
 	MEMBERS("!membros", false),
 	DISCONNECT("!desconectar", false);
@@ -20,7 +21,7 @@ public enum Commands {
 				if (!c.hasArg)
 					return c;
 
-				String[] split = cmd.split(" ", 1);
+				String[] split = cmd.split(" ", 2);
 				if (split.length != 2)
 					throw new Exception("Comando '" + c.cmd + "' necessita de um argumento");
 

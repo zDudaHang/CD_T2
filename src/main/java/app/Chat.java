@@ -14,12 +14,14 @@ public class Chat extends ReceiverAdapter {
     private boolean isActive;
     private final String username;
     private final String chatname;
+    private final App app;
 
     private JChannel channel;
     private View lastView;
 
-    public Chat(String username, String chatname, boolean isActive) {
+    public Chat(App app, String username, String chatname, boolean isActive) {
         lastView = new View(new ViewId(), new ArrayList<>());
+        this.app = app;
         this.username = username;
         this.chatname = chatname;
         this.isActive = isActive;
@@ -90,6 +92,12 @@ public class Chat extends ReceiverAdapter {
         }
 
         switch (c) {
+            case ENTER:
+                this.isActive = false;
+                this.app.chats
+                        .computeIfAbsent(c.argument, k -> new Chat(this.app, this.username, k, true))
+                        .activate();
+                return false;
             case QUIT:
                 quit();
                 return true;
