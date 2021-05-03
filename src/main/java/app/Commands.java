@@ -5,7 +5,8 @@ public enum Commands {
 	QUIT("!sair", false),
 	MEMBERS("!membros", false),
 	DISCONNECT("!desconectar", false),
-	PRIVATE_MSG("!private", true);
+	PRIVATE_MSG("!private", true),
+	SURVEY("!enquete", true);
 
 	public String argument;
 	private final String cmd;

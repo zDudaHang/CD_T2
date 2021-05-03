@@ -2,10 +2,16 @@ package app;
 
 import gui.TerminalGUI;
 import org.jgroups.*;
+import org.jgroups.blocks.MethodCall;
+import org.jgroups.blocks.RequestOptions;
+import org.jgroups.blocks.ResponseMode;
+import org.jgroups.blocks.RpcDispatcher;
+import org.jgroups.util.RspList;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static gui.MsgColor.*;
@@ -52,6 +58,9 @@ public class Chat extends ReceiverAdapter {
 
         while (true) {
             String userInput = TerminalGUI.read(100);
+
+            assert userInput != null;
+
             if (userInput.length() == 0)
                 continue;
 
@@ -69,6 +78,7 @@ public class Chat extends ReceiverAdapter {
             }
 
             Message msg = new Message(null, userInput);
+
             try {
                 this.channel.send(msg);
             } catch (Exception e) {
@@ -136,6 +146,9 @@ public class Chat extends ReceiverAdapter {
                     TerminalGUI.printLnError(e.getMessage());
                 }
                 TerminalGUI.printLn(WHITE, this.username + ": " + msg);
+
+            case SURVEY:
+                makeSurvey(c.argument);
                 break;
         }
         return false;
@@ -152,6 +165,7 @@ public class Chat extends ReceiverAdapter {
     private void getMembers() {
         List<Address> members = this.lastView.getMembers();
         List<String> membersNames = new ArrayList<>();
+
         members.forEach(a -> {
             String name = a.toString();
             if (a.equals(channel.getAddress())) {
@@ -162,6 +176,7 @@ public class Chat extends ReceiverAdapter {
             }
             membersNames.add(name);
         });
+
         TerminalGUI.printLnInfo(membersNames.toString());
     }
 
@@ -177,6 +192,60 @@ public class Chat extends ReceiverAdapter {
         this.channel.close();
         if (this.channel.isClosed())
             TerminalGUI.printLnSuccess("Você saiu do Chat");
+    }
+
+    public int receiveSurvey(Integer numOptions, String survey) {
+        int resp = -1;
+        TerminalGUI.printLnInfo("Uma enquete nova chegou");
+        TerminalGUI.printLnInfo(survey);
+        TerminalGUI.printLnInfo("Escolha uma das opções: ");
+        resp = Integer.parseInt(TerminalGUI.read(100));
+        return resp;
+    }
+
+    private void makeSurvey(String args) {
+        String[] splittedArgs = args.split(" ", 2);
+
+        if (splittedArgs.length < 2) {
+            TerminalGUI.printLnError("É necessário um título e uma lista opções para mandar uma enquete");
+            return;
+        }
+
+        String title = splittedArgs[0];
+        String options = splittedArgs[1];
+
+        List<String> splitedOptions = Arrays.asList(options.split(","));
+
+        if (splitedOptions.size() <= 1) {
+            TerminalGUI.printLnError("É necessário mais de uma opção para ser uma enquete");
+            return;
+        }
+
+        String survey = "Enquete: " + title + "\n";
+        int i = 0;
+        for (String s: splitedOptions) {
+            survey += "[" + i + "] " + s + "\n";
+            i++;
+        }
+        survey += "[-1] Caso não queira votar\n";
+
+        RequestOptions opts = new RequestOptions(ResponseMode.GET_ALL, 5000);
+        RpcDispatcher rpc = new RpcDispatcher(channel, this);
+
+        RspList<Integer> rsp = new RspList<>();
+
+        try {
+            MethodCall call = new MethodCall(getClass().getMethod("receiveSurvey", Integer.class, String.class));
+            call.setArgs((Integer) splitedOptions.size(), survey);
+            rsp = rpc.callRemoteMethods(null, call, opts);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        for (Object o : rsp) {
+            TerminalGUI.printLnInfo(o.toString());
+        }
+
     }
 
     @Override
@@ -201,6 +270,7 @@ public class Chat extends ReceiverAdapter {
                 TerminalGUI.printLnInfo(msg + exitedMembers.toString());
             }
         }
+
         lastView = newView;
     }
 

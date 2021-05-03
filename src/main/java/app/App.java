@@ -3,6 +3,10 @@ package app;
 import gui.TerminalGUI;
 
 import java.util.HashMap;
+
+import org.jgroups.blocks.RequestOptions;
+import org.jgroups.blocks.ResponseMode;
+import org.jgroups.blocks.RpcDispatcher;
 import org.jgroups.logging.LogFactory;
 
 import static gui.MsgColor.CYAN;
@@ -14,7 +18,7 @@ public class App {
             "|| Computação Distribuída - INE5418\n" +
             "|| Trabalho 2 - T2\n" +
             "|| Matheus Leonel Balduino - 17202305\n" +
-            "|| Maria Eduarda de Melo Hang - XXXXXXXX\n" +
+            "|| Maria Eduarda de Melo Hang - 17202304\n" +
             "||\n" +
             "|| Seja bem-vindo ao UFSCzap!\n" +
             "|| - Comandos disponíveis:\n" +
@@ -33,19 +37,20 @@ public class App {
         TerminalGUI.printLn(CYAN, greetings);
 
         // Pede o nome de usuario
-        TerminalGUI.printLn("Your username:");
+        TerminalGUI.printLn("Seu nome de usuário:");
         this.username = TerminalGUI.read(50);
-        TerminalGUI.printLnInfo("Username: " + this.username);
+        TerminalGUI.printLnInfo("Nome de usuário: " + this.username);
 
         // Pede o nome do primeiro chat, conecta e limpa a tela
-        TerminalGUI.printLn("The chatname:");
+        TerminalGUI.printLn("Nome do chat:");
         String chatname = TerminalGUI.read(50);
-        TerminalGUI.printLnInfo("Chatname: " + chatname);
+        TerminalGUI.printLnInfo("Chat: " + chatname);
 
         // Remove logs
         LogFactory.setCustomLogFactory(new app.LogFactory()); // Omitir logs
 
         Chat newChat = new Chat(this, this.username, chatname, true);
+
         this.chats.put(chatname, newChat);
         newChat.activate();
     }
