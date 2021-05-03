@@ -31,6 +31,7 @@ public class TerminalGUI {
     public static void printLn(MsgColor color, String msg) { System.out.println(color.ansiCode + msg + "\u001B[0m"); }
     public static void printLn(String msg) { TerminalGUI.printLn(WHITE, msg); }
     public static void printLnInfo(String msg) { TerminalGUI.printLn(CYAN, "[ INFO ] " + msg); }
+    public static void printLnWarn(String msg) { TerminalGUI.printLn(YELLOW, "[ WARN ] " + msg); }
     public static void printLnSuccess(String msg) { TerminalGUI.printLn(GREEN, "[ SUCCESS ] " + msg); }
     public static void printLnError(String msg) { TerminalGUI.printLn(RED, "[ ERROR ] " + msg); }
     public static void printLnFatal(String msg) { TerminalGUI.printLn(RED, "[ FATAL ] " + msg); exit(1); }

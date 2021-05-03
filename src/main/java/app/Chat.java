@@ -5,6 +5,7 @@ import org.jgroups.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static gui.MsgColor.*;
@@ -107,9 +108,46 @@ public class Chat extends ReceiverAdapter {
             case DISCONNECT:
                 disconnect();
                 break;
+            case PRIVATE_MSG:
+                String[] args = c.argument.split(" ", 2);
+                if (args.length != 2) {
+                    TerminalGUI.printLnError("You must pass a destiny and a message, look: !private <dest_name> <msg>");
+                    break;
+                }
+
+                String dest = args[0];
+                String msg = args[1];
+
+                Address addr = this.getAddress(dest);
+                if (addr == null) {
+                    TerminalGUI.printLnError("There's no user named '" + dest + "'. Fix it and try again");
+                    break;
+                }
+
+                if (msg.length() == 0) {
+                    TerminalGUI.printLnError("The message is empty");
+                    break;
+                }
+                msg = "(PRIVATE) " + msg;
+
+                try {
+                    this.channel.send(new Message(addr, msg));
+                } catch (Exception e) {
+                    TerminalGUI.printLnError(e.getMessage());
+                }
+                TerminalGUI.printLn(WHITE, this.username + ": " + msg);
+                break;
         }
         return false;
     }
+
+    private Address getAddress(String name) {
+        View view = channel.view();
+        return view.getMembers().stream()
+                .filter(address -> name.equals(address.toString()))
+                .findAny().orElse(null);
+    }
+
 
     private void getMembers() {
         List<Address> members = this.lastView.getMembers();
@@ -171,7 +209,7 @@ public class Chat extends ReceiverAdapter {
         if (!isActive)
             return;
 
-        TerminalGUI.printLn(YELLOW, msg.getSrc().toString() + ": " +  msg.getObject());
+        TerminalGUI.printLn(WHITE, msg.getSrc().toString() + ": " +  msg.getObject());
     }
 
     private boolean isCommand(String msg) { return msg.charAt(0) == '!'; }
