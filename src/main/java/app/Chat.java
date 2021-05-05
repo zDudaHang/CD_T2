@@ -1,16 +1,17 @@
 package app;
 
 import gui.TerminalGUI;
+import model.Survey;
+import model.SurveyThread;
+import util.ChatUtil;
+
 import org.jgroups.*;
-import org.jgroups.blocks.MethodCall;
-import org.jgroups.blocks.RequestOptions;
-import org.jgroups.blocks.ResponseMode;
-import org.jgroups.blocks.RpcDispatcher;
-import org.jgroups.util.RspList;
+import org.jgroups.blocks.atomic.Counter;
+import org.jgroups.blocks.atomic.CounterService;
+import org.jgroups.util.Util;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,6 +26,8 @@ public class Chat extends ReceiverAdapter {
 
     private JChannel channel;
     private View lastView;
+    private CounterService service;
+    private static final String SURVEYS_COUNTER = "surveyCounters";
 
     public Chat(App app, String username, String chatname, boolean isActive) {
         lastView = new View(new ViewId(), new ArrayList<>());
@@ -35,27 +38,37 @@ public class Chat extends ReceiverAdapter {
     }
 
     public void activate() {
-        this.isActive = true;
+        isActive = true;
         TerminalGUI.clear();
-        TerminalGUI.printLnInfo("Activating chat '" + this.chatname + "'");
 
-        // Conecta no chat escolhido
         try {
-            this.channel = new JChannel().setReceiver(this);
+            channel = new JChannel("/home/bridge/CD_T2/src/main/resources/config.xml").setReceiver(this);
         } catch (Exception e) {
             TerminalGUI.printLnError(e.getMessage());
             return;
         }
-        this.channel.setName(this.username);
+
+        channel.setName(username);
+
         try {
-            this.channel.connect(chatname);
+            channel.connect(chatname);
         } catch (Exception e) {
             TerminalGUI.printLnError(e.getMessage());
         }
 
-        TerminalGUI.clear();
-        TerminalGUI.printLnInfo("You've entered chat '" + this.chatname + "'");
+        service = new CounterService(channel);
 
+        if (isCoord())
+            service.getOrCreateCounter(SURVEYS_COUNTER, 0);
+
+
+        TerminalGUI.clear();
+        TerminalGUI.printLnInfo("Você entrou no chat '" + chatname + "'");
+
+        handleUserInput();
+    }
+
+    private void handleUserInput() {
         while (true) {
             String userInput = TerminalGUI.read(100);
 
@@ -64,26 +77,19 @@ public class Chat extends ReceiverAdapter {
             if (userInput.length() == 0)
                 continue;
 
-            if (isCommand(userInput)) {
+            if (ChatUtil.isCommand(userInput)) {
                 boolean shouldQuit = handleCommand(userInput);
                 if (shouldQuit)
                     break;
-
                 continue;
             }
 
-            if (this.channel == null) {
+            if (channel == null) {
                 TerminalGUI.printLnError("Você não está conectado a nenhum chat");
                 continue;
             }
 
-            Message msg = new Message(null, userInput);
-
-            try {
-                this.channel.send(msg);
-            } catch (Exception e) {
-                TerminalGUI.printLnError(e.getMessage());
-            }
+            sendMessage(new Message(null, userInput));
         }
 
         exit(0);
@@ -91,12 +97,14 @@ public class Chat extends ReceiverAdapter {
 
     private boolean handleCommand(String command) {
         Commands c;
+
         try {
             c = Commands.fromString(command);
         } catch (Exception e) {
             TerminalGUI.printLnError(e.getMessage());
             return false;
         }
+
         if (c == null) {
             TerminalGUI.printLnError("Comando '" + command + "' desconhecido");
             return false;
@@ -104,9 +112,9 @@ public class Chat extends ReceiverAdapter {
 
         switch (c) {
             case ENTER:
-                this.isActive = false;
-                this.app.chats
-                        .computeIfAbsent(c.argument, k -> new Chat(this.app, this.username, k, true))
+                isActive = false;
+                app.chats
+                        .computeIfAbsent(c.argument, k -> new Chat(app, username, k, true))
                         .activate();
                 return false;
             case QUIT:
@@ -138,20 +146,27 @@ public class Chat extends ReceiverAdapter {
                     TerminalGUI.printLnError("The message is empty");
                     break;
                 }
-                msg = "(PRIVATE) " + msg;
 
-                try {
-                    this.channel.send(new Message(addr, msg));
-                } catch (Exception e) {
-                    TerminalGUI.printLnError(e.getMessage());
-                }
-                TerminalGUI.printLn(WHITE, this.username + ": " + msg);
+                sendMessage(new Message(addr, "(PRIVATE) " + msg));
+
+                TerminalGUI.printLn(WHITE, username + ": " + msg);
 
             case SURVEY:
                 makeSurvey(c.argument);
                 break;
+            case VOTE:
+                vote(c.argument);
+                break;
         }
         return false;
+    }
+
+    private void sendMessage(Message msg) {
+        try {
+            channel.send(msg);
+        } catch (Exception e) {
+            TerminalGUI.printLnError(e.getMessage());
+        }
     }
 
     private Address getAddress(String name) {
@@ -161,9 +176,8 @@ public class Chat extends ReceiverAdapter {
                 .findAny().orElse(null);
     }
 
-
     private void getMembers() {
-        List<Address> members = this.lastView.getMembers();
+        List<Address> members = lastView.getMembers();
         List<String> membersNames = new ArrayList<>();
 
         members.forEach(a -> {
@@ -181,26 +195,17 @@ public class Chat extends ReceiverAdapter {
     }
 
     private void disconnect() {
-        this.channel.disconnect();
-        if (!this.channel.isConnected())
+        channel.disconnect();
+        if (!channel.isConnected())
             TerminalGUI.printLnSuccess("Desconectado do Chat");
         else
             TerminalGUI.printLnError("Nao foi possivel desconectar do Chat");
     }
 
     private void quit() {
-        this.channel.close();
-        if (this.channel.isClosed())
+        channel.close();
+        if (channel.isClosed())
             TerminalGUI.printLnSuccess("Você saiu do Chat");
-    }
-
-    public int receiveSurvey(Integer numOptions, String survey) {
-        int resp = -1;
-        TerminalGUI.printLnInfo("Uma enquete nova chegou");
-        TerminalGUI.printLnInfo(survey);
-        TerminalGUI.printLnInfo("Escolha uma das opções: ");
-        resp = Integer.parseInt(TerminalGUI.read(100));
-        return resp;
     }
 
     private void makeSurvey(String args) {
@@ -221,30 +226,78 @@ public class Chat extends ReceiverAdapter {
             return;
         }
 
-        String survey = "Enquete: " + title + "\n";
-        int i = 0;
-        for (String s: splitedOptions) {
-            survey += "[" + i + "] " + s + "\n";
-            i++;
-        }
-        survey += "[-1] Caso não queira votar\n";
+        Survey survey = new Survey(title, splitedOptions);
 
-        RequestOptions opts = new RequestOptions(ResponseMode.GET_ALL, 5000);
-        RpcDispatcher rpc = new RpcDispatcher(channel, this);
+        Counter count = service.getOrCreateCounter(SURVEYS_COUNTER, -1);
 
-        RspList<Integer> rsp = new RspList<>();
+        long idx = count.get();
 
-        try {
-            MethodCall call = new MethodCall(getClass().getMethod("receiveSurvey", Integer.class, String.class));
-            call.setArgs((Integer) splitedOptions.size(), survey);
-            rsp = rpc.callRemoteMethods(null, call, opts);
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (idx < 0) {
+            TerminalGUI.printLnError("Não foi possível criar uma enquete no momento. Tente novamente mais tarde.");
+            return;
         }
 
-        for (Object o : rsp) {
-            TerminalGUI.printLnInfo(o.toString());
+        for (int i = 0; i < splitedOptions.size(); i++) {
+            service.getOrCreateCounter(ChatUtil.createCounterName(idx, i), 0);
         }
+
+        sendMessage(new Message(null,"Criei uma nova enquete!\n"
+                + survey.toString()
+                + "Para votar nela, digite: !votar " + idx + " <opcao>\n"
+                + "Ela acabará em 1 minuto!\n"
+                )
+        );
+
+        count.incrementAndGet();
+        
+        SurveyThread t = new SurveyThread(service, idx, survey, 1, SURVEYS_COUNTER, channel);
+        t.start();
+
+    }
+
+    public void vote(String args) {
+        String[] splittedArgs = args.split(" ", 2);
+
+        if (splittedArgs.length < 2) {
+            TerminalGUI.printLnError("É necessário o número da enquete e qual a opção que você votou");
+            return;
+        }
+
+        long survey = Long.parseLong(splittedArgs[0]);
+
+        Counter surveyCounter = service.getOrCreateCounter(SURVEYS_COUNTER, -1);
+
+        long numOfSurveys = surveyCounter.get();
+
+        //      Was possible to acess the surveys counter?
+        if (numOfSurveys < 0) {
+            TerminalGUI.printLnError("Não foi possível ver enquete no momento");
+            return;
+        }
+
+        //      Verify if is a valid number of a survey
+        if (survey > numOfSurveys - 1) {
+            TerminalGUI.printLnError("A enquete de número " + survey + " não existe.");
+            return;
+        }
+
+        int option = Integer.parseInt(splittedArgs[1]);
+
+        String counterName = ChatUtil.createCounterName(survey, option);
+
+        Counter count = service.getOrCreateCounter(counterName, -1);
+
+        long value = count.get();
+
+        if (value < 0) {
+            TerminalGUI.printLnError("A enquete de número " + survey + " não tem a opção " + option);
+            service.deleteCounter(counterName);
+            return;
+        }
+
+        count.incrementAndGet();
+
+        TerminalGUI.printLnSuccess("Voto contabilizado!");
 
     }
 
@@ -274,13 +327,14 @@ public class Chat extends ReceiverAdapter {
         lastView = newView;
     }
 
+    public boolean isCoord() {
+        return channel.getAddress() == channel.getView().getCoord();
+    }
+
     @Override
     public void receive(Message msg) {
         if (!isActive)
             return;
-
         TerminalGUI.printLn(WHITE, msg.getSrc().toString() + ": " +  msg.getObject());
     }
-
-    private boolean isCommand(String msg) { return msg.charAt(0) == '!'; }
 }
