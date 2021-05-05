@@ -7,6 +7,8 @@ import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.blocks.atomic.Counter;
 import org.jgroups.blocks.atomic.CounterService;
+
+import app.Chat;
 import gui.TerminalGUI;
 import util.ChatUtil;
 
@@ -15,16 +17,15 @@ public class SurveyThread extends Thread {
 	private final CounterService service;
 	private final long surveyNumber;
 	private final Survey survey;
-	private final long timeToSleepInMinutes;
+	private final long sleepTime;
 	private final String surveyCounters;
 	private final JChannel channel;
-
-	public SurveyThread(CounterService service, long surveyNumber, Survey survey, long timeToSleepInMinutes, String surveyCounters, JChannel channel) {
+	public SurveyThread(CounterService service, long surveyNumber, Survey survey, long sleepTimeInMinutes, String surveyCounters, JChannel channel) {
 		super();
 		this.service = service;
 		this.surveyNumber = surveyNumber;
 		this.survey = survey;
-		this.timeToSleepInMinutes = timeToSleepInMinutes * 60000;
+		sleepTime = sleepTimeInMinutes * 60000;
 		this.surveyCounters = surveyCounters;
 		this.channel = channel;
 	}
@@ -32,7 +33,7 @@ public class SurveyThread extends Thread {
 	public void run() {
 
 		try {
-			sleep(timeToSleepInMinutes);
+			sleep(sleepTime);
 		} catch (InterruptedException e) {
 			TerminalGUI.printLnError(e.getMessage());
 		}
@@ -64,8 +65,11 @@ public class SurveyThread extends Thread {
 
 		try {
 			channel.send(new Message(null, result));
+			channel.send(new Message(null, "!Remove#" + surveyNumber));
 		} catch (Exception e) {
 			TerminalGUI.printLnError(e.getMessage());
 		}
+
+
 	}
 }

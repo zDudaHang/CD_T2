@@ -12,10 +12,6 @@ public class Survey implements Serializable {
 		this.options = options;
 	}
 
-	public int getNumberOfOptions() {
-		return options.size();
-	}
-
 	@Override public String toString() {
 		String s = "Enquete: " + title + "\n";
 		for (String op : options) {
