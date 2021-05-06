@@ -33,8 +33,8 @@ public class ChatUtil {
 						"||      !membros: Ver os membros do chat atual\n" +
 						"||      !desconectar: Sair do chat atual\n" +
 						"||      !priv <nome_usuario> <mensagem>: Mandar uma mensagem privada\n" +
-						"||      !enquete <titulo> <opcao1>,<opcao2>,... : Criar uma enquete\n" +
-						"||      !votar <timeout> <num_enquete> <opcao>: Votar em uma enquete\n" +
+						"||      !enquete <timeout> <titulo> <opcao1>,<opcao2>,... : Criar uma enquete\n" +
+						"||      !votar <num_enquete> <opcao>: Votar em uma enquete\n" +
 						"||      !ajuda: Mostrar os comandos\n" +
 						"||\n"
 		);
