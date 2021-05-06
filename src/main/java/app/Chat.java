@@ -8,6 +8,8 @@ import org.jgroups.blocks.atomic.Counter;
 import org.jgroups.blocks.atomic.CounterService;
 import util.ChatUtil;
 
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -26,18 +28,16 @@ public class Chat extends ReceiverAdapter{
     private View lastView;
     private CounterService service;
     private static final String SURVEYS_COUNTER = "surveyCounters";
-    private final long surveyTimeoutInMinutes;
 
 //    Manage the votes of the user
     private final List<Long> votes = new ArrayList<>();
 
-    public Chat(App app, String username, String chatname, boolean isActive, long surveyTimeoutInMinutes) {
+    public Chat(App app, String username, String chatname, boolean isActive) {
         lastView = new View(new ViewId(), new ArrayList<>());
         this.app = app;
         this.username = username;
         this.chatname = chatname;
         this.isActive = isActive;
-        this.surveyTimeoutInMinutes = surveyTimeoutInMinutes;
     }
 
     public void activate() {
@@ -45,7 +45,8 @@ public class Chat extends ReceiverAdapter{
         TerminalGUI.clear();
 
         try {
-            channel = new JChannel("/home/bridge/CD_T2/src/main/resources/config.xml").setReceiver(this);
+            InputStream configXML = Thread.currentThread().getContextClassLoader().getResourceAsStream("config.xml");
+            channel = new JChannel(configXML).setReceiver(this);
         } catch (Exception e) {
             TerminalGUI.printLnError(e.getMessage());
             return;
@@ -117,7 +118,7 @@ public class Chat extends ReceiverAdapter{
             case ENTER:
                 isActive = false;
                 app.chats
-                        .computeIfAbsent(c.argument, k -> new Chat(app, username, k, true, surveyTimeoutInMinutes))
+                        .computeIfAbsent(c.argument, k -> new Chat(app, username, k, true))
                         .activate();
                 break;
             case QUIT:
@@ -194,15 +195,16 @@ public class Chat extends ReceiverAdapter{
     }
 
     private void makeSurvey(String args) {
-        String[] splittedArgs = args.split(" ", 2);
+        String[] splittedArgs = args.split(" ", 3);
 
-        if (splittedArgs.length < 2) {
-            TerminalGUI.printLnError("É necessário um título e uma lista opções para mandar uma enquete");
+        if (splittedArgs.length != 3) {
+            TerminalGUI.printLnError("É necessário um timeout (em minutos), título e uma lista opções para mandar uma enquete");
             return;
         }
 
-        String title = splittedArgs[0];
-        String options = splittedArgs[1];
+        long timeout = Long.parseLong(splittedArgs[0]);
+        String title = splittedArgs[1];
+        String options = splittedArgs[2];
 
         List<String> splitedOptions = Arrays.asList(options.split(","));
 
@@ -229,13 +231,13 @@ public class Chat extends ReceiverAdapter{
         sendMessage(new Message(null,"Criei uma nova enquete!\n"
                 + survey.toString()
                 + "Para votar nela, digite: !votar " + idx + " <opcao>\n"
-                + "Ela acabará em " + surveyTimeoutInMinutes + " minuto(s)!\n"
+                + "Ela acabará em " + timeout + " minuto(s)!\n"
                 )
         );
 
         count.incrementAndGet();
 
-        SurveyThread t = new SurveyThread(service, idx, survey, surveyTimeoutInMinutes, SURVEYS_COUNTER, channel);
+        SurveyThread t = new SurveyThread(service, idx, survey, timeout, SURVEYS_COUNTER, channel);
         t.start();
     }
 
