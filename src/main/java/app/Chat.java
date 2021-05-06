@@ -316,7 +316,7 @@ public class Chat extends ReceiverAdapter{
             return;
         }
 
-        sendMessage(new Message(addr, "(PRIVADO) " + msg));
+        sendMessage(new Message(addr, "!PrivateMSG#" + msg));
 
         TerminalGUI.printLn(WHITE, username + ": " + msg);
     }
@@ -365,13 +365,19 @@ public class Chat extends ReceiverAdapter{
             return;
 
         String content = msg.getObject();
+        Address source = msg.getSrc();
+        String nameSource = isMe(source) ? "Você" : source.toString();
 
         if (ChatUtil.isCommand(content)) {
-            String[] contents = content.split("#");
-            removeVote(Long.parseLong(contents[1]));
+            String[] contents = content.split("#", 2);
+            if (contents[0].startsWith("!Remove")) {
+                removeVote(Long.parseLong(contents[1]));
+                return;
+            }
+            if (contents[0].startsWith("!PrivateMSG")) {
+                TerminalGUI.printLn(WHITE, nameSource + ": (PRIVATE) " +  contents[1], true);
+            }
         } else {
-            Address source = msg.getSrc();
-            String nameSource = isMe(source) ? "Você" : source.toString();
             TerminalGUI.printLn(WHITE, nameSource + ": " +  content);
         }
 

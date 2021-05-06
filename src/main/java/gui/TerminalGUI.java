@@ -28,7 +28,12 @@ public class TerminalGUI {
         return new String(input_bytes, 0, read - 1, StandardCharsets.UTF_8);
     }
 
-    public static void printLn(MsgColor color, String msg) { System.out.println(color.ansiCode + msg + "\u001B[0m"); }
+    public static void printLn(MsgColor color, String msg, boolean underline) {
+        String ansiCode = underline ? color.ansiCode_underline : color.ansiCode;
+        System.out.println(ansiCode + msg + "\u001B[0m");
+    }
+
+    public static void printLn(MsgColor color, String msg) { TerminalGUI.printLn(color, msg, false); }
     public static void printLn(String msg) { TerminalGUI.printLn(WHITE, msg); }
     public static void printLnInfo(String msg) { TerminalGUI.printLn(CYAN, "[ INFO ] " + msg); }
     public static void printLnSuccess(String msg) { TerminalGUI.printLn(GREEN, "[ SUCCESSO ] " + msg); }
