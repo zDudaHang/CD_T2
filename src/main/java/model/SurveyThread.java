@@ -36,6 +36,7 @@ public class SurveyThread extends Thread {
 			sleep(sleepTime);
 		} catch (InterruptedException e) {
 			TerminalGUI.printLnError(e.getMessage());
+			return;
 		}
 
 		HashMap<String, Long> results = new HashMap<>();
