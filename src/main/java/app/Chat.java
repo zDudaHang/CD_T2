@@ -3,18 +3,17 @@ package app;
 import gui.TerminalGUI;
 import model.Survey;
 import model.SurveyThread;
-import util.ChatUtil;
-
 import org.jgroups.*;
 import org.jgroups.blocks.atomic.Counter;
 import org.jgroups.blocks.atomic.CounterService;
+import util.ChatUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static gui.MsgColor.*;
+import static gui.MsgColor.WHITE;
 import static java.lang.System.exit;
 
 public class Chat extends ReceiverAdapter{

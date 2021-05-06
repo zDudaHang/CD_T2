@@ -1,5 +1,3 @@
-import java.util.Arrays;
-
 import app.App;
 import gui.TerminalGUI;
 

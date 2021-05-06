@@ -1,12 +1,10 @@
 package app;
 
 import gui.TerminalGUI;
+import org.jgroups.logging.LogFactory;
 import util.ChatUtil;
 
 import java.util.HashMap;
-import org.jgroups.logging.LogFactory;
-
-import static gui.MsgColor.CYAN;
 
 public class App {
     public final HashMap<String, Chat> chats = new HashMap<>();
