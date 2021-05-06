@@ -1,17 +1,15 @@
 package app;
 
 import gui.TerminalGUI;
+import org.jgroups.logging.LogFactory;
 import util.ChatUtil;
 
 import java.util.HashMap;
-import org.jgroups.logging.LogFactory;
-
-import static gui.MsgColor.CYAN;
 
 public class App {
     public final HashMap<String, Chat> chats = new HashMap<>();
 
-    public App(long surveyTimeoutInMinutes) {
+    public App() {
         TerminalGUI.clear();
         ChatUtil.greet();
 
@@ -26,7 +24,7 @@ public class App {
         // Remove logs
         LogFactory.setCustomLogFactory(new app.LogFactory()); // Omit logs
 
-        Chat newChat = new Chat(this, username, chatname, true, surveyTimeoutInMinutes);
+        Chat newChat = new Chat(this, username, chatname, true);
 
         this.chats.put(chatname, newChat);
 

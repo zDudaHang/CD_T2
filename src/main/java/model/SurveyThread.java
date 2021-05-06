@@ -1,16 +1,14 @@
 package model;
 
-import java.util.HashMap;
-import java.util.List;
-
+import gui.TerminalGUI;
 import org.jgroups.JChannel;
 import org.jgroups.Message;
 import org.jgroups.blocks.atomic.Counter;
 import org.jgroups.blocks.atomic.CounterService;
-
-import app.Chat;
-import gui.TerminalGUI;
 import util.ChatUtil;
+
+import java.util.HashMap;
+import java.util.List;
 
 public class SurveyThread extends Thread {
 
@@ -36,6 +34,7 @@ public class SurveyThread extends Thread {
 			sleep(sleepTime);
 		} catch (InterruptedException e) {
 			TerminalGUI.printLnError(e.getMessage());
+			return;
 		}
 
 		HashMap<String, Long> results = new HashMap<>();
