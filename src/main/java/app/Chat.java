@@ -318,7 +318,7 @@ public class Chat extends ReceiverAdapter{
 
         sendMessage(new Message(addr, "!PrivateMSG#" + msg));
 
-        TerminalGUI.printLn(WHITE, username + ": " + msg);
+        TerminalGUI.printLn(WHITE, "Você" + ": " + msg);
     }
 
     @Override
@@ -375,7 +375,7 @@ public class Chat extends ReceiverAdapter{
                 return;
             }
             if (contents[0].startsWith("!PrivateMSG")) {
-                TerminalGUI.printLn(WHITE, nameSource + ": (PRIVATE) " +  contents[1], true);
+                TerminalGUI.printLn(WHITE, nameSource + ": (PRIVADO) " +  contents[1], true);
             }
         } else {
             TerminalGUI.printLn(WHITE, nameSource + ": " +  content);
