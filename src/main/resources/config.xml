@@ -4,10 +4,8 @@
     <UDP/>
     <PING/>
     <MERGE3/>
-    <FD_SOCK/>
     <FD_ALL/>
     <VERIFY_SUSPECT/>
-    <BARRIER/>
     <pbcast.NAKACK2/>
     <UNICAST3/>
     <pbcast.STABLE/>

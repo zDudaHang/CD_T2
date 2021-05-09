@@ -18,6 +18,7 @@ public class SurveyThread extends Thread {
 	private final long sleepTime;
 	private final String surveyCounters;
 	private final JChannel channel;
+
 	public SurveyThread(CounterService service, long surveyNumber, Survey survey, long sleepTimeInMinutes, String surveyCounters, JChannel channel) {
 		super();
 		this.service = service;
